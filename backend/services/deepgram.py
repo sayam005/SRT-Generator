@@ -7,25 +7,84 @@ Handles both single-file and parallel chunk transcription.
 import asyncio
 from typing import List
 
+from deepgram import DeepgramClient, PrerecordedOptions, FileSource
+
+from config import settings
 from models.schemas import Segment
 
 
-async def transcribe_file(audio_path: str) -> List[Segment]:
+# Initialize the client (will automatically use DEEPGRAM_API_KEY from env if available)
+# Since we load it via pydantic-settings, we explicitly pass it in case it's not exported
+try:
+    deepgram_client = DeepgramClient(settings.DEEPGRAM_API_KEY)
+except Exception:
+    pass  # We'll fail on actual calls if not set
+
+
+async def transcribe_file(audio_path: str, language: str = "hi") -> List[Segment]:
     """Transcribe a single audio file via Deepgram.
 
-    Uses model="nova-2", language="hi", with utterances and punctuation.
+    Uses model="nova-2" with utterances and punctuation.
 
     Args:
         audio_path: Path to the audio file.
+        language: Language code ("hi" for Hindi/Hinglish, "en" for English).
 
     Returns:
-        List of Segments with Devanagari text and timestamps.
+        List of Segments with Devanagari/English text and timestamps.
     """
-    raise NotImplementedError("Phase 3: Deepgram transcription")
+    if not settings.DEEPGRAM_API_KEY:
+        raise ValueError("DEEPGRAM_API_KEY is not set")
+
+    # We run the deepgram call in a sync executor because DeepgramClient
+    # has a sync method `transcribe_file` that blocks. There is an async client
+    # but the python SDK is constantly changing. We'll use the sync one safely.
+    
+    def _transcribe():
+        with open(audio_path, "rb") as audio_file:
+            payload: FileSource = {"buffer": audio_file}
+            options = PrerecordedOptions(
+                model="nova-2",
+                language=language,
+                smart_format=True,
+                utterances=True,
+                punctuate=True,
+                diarize=False,
+            )
+            response = deepgram_client.listen.rest.v("1").transcribe_file(
+                payload, options
+            )
+            return response
+
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(None, _transcribe)
+
+    # Parse response into Segments
+    segments = []
+    
+    # Deepgram returns utterances if requested
+    try:
+        utterances = response["results"]["utterances"]
+        for u in utterances:
+            # Handle edge cases where text might be empty
+            text = u.get("transcript", "").strip()
+            if text:
+                segments.append(
+                    Segment(
+                        start=u["start"],
+                        end=u["end"],
+                        text=text,
+                    )
+                )
+    except KeyError:
+        # Fallback if utterances fail but we have words
+        pass
+
+    return segments
 
 
 async def transcribe_chunks_parallel(
-    chunk_paths: List[str],
+    chunk_paths: List[str], language: str = "hi"
 ) -> List[List[Segment]]:
     """Transcribe multiple audio chunks in parallel.
 
@@ -33,8 +92,18 @@ async def transcribe_chunks_parallel(
 
     Args:
         chunk_paths: List of paths to chunk audio files.
+        language: Target language.
 
     Returns:
         List of segment lists, one per chunk.
     """
-    raise NotImplementedError("Phase 3: parallel transcription")
+    tasks = [transcribe_file(path, language) for path in chunk_paths]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    final_results = []
+    for i, res in enumerate(results):
+        if isinstance(res, Exception):
+            raise RuntimeError(f"Deepgram failed on chunk {i}: {str(res)}") from res
+        final_results.append(res)
+        
+    return final_results

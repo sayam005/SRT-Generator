@@ -43,6 +43,7 @@ class VideoJob(BaseModel):
     progress_percent: int = 0
     current_stage: str = "pending"
     error: Optional[str] = None
+    language: str = Field(default="hi", description="Transcription language: 'hi' (Hinglish) or 'en' (English)")
 
     video_path: str = ""
     audio_path: str = ""
@@ -96,5 +97,6 @@ class JobResponse(BaseModel):
     preview_url: Optional[str] = None
     subtitle_position: str = "bottom"
     font_size: int = 24
+    language: str = "hi"
     created_at: datetime
     updated_at: datetime

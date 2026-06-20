@@ -9,11 +9,13 @@ const BASE_URL = "http://localhost:8000/api";
 /**
  * Upload a video file and create a transcription job.
  * @param {File} file - The video file to upload.
+ * @param {string} language - "hi" or "en".
  * @returns {Promise<Object>} JobResponse from the backend.
  */
-export async function createJob(file) {
+export async function createJob(file, language = "hi") {
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("language", language);
 
     const res = await fetch(`${BASE_URL}/jobs`, {
         method: "POST",

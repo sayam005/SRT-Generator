@@ -7,7 +7,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 
-from workers.pipeline import jobs
+from workers.pipeline import jobs, save_job
+from services.preview import generate_preview
 
 router = APIRouter(prefix="/api", tags=["preview"])
 
@@ -29,7 +30,23 @@ async def get_preview(
     if not job.preview_path or not Path(job.preview_path).exists():
         raise HTTPException(404, "Preview not yet generated")
 
-    # TODO: Check if position/font_size changed → regenerate
+    # If position/font_size changed, regenerate
+    if job.subtitle_position != position or job.font_size != font_size:
+        # Trigger regeneration await
+        try:
+            new_path = await generate_preview(
+                job_id=job.job_id,
+                video_path=job.video_path,
+                segments=job.segments,
+                position=position,
+                font_size=font_size
+            )
+            job.preview_path = new_path
+            job.subtitle_position = position
+            job.font_size = font_size
+            save_job(job)
+        except Exception as e:
+            raise HTTPException(500, f"Failed to regenerate preview: {e}")
 
     return FileResponse(
         job.preview_path,

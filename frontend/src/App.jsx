@@ -47,10 +47,10 @@ export default function App() {
   }
 
   // --- Handlers ---
-  const handleUpload = useCallback(async (file) => {
+  const handleUpload = useCallback(async (file, language) => {
     setUploadError(null);
     try {
-      const data = await createJob(file);
+      const data = await createJob(file, language);
       setJobId(data.job_id);
     } catch (err) {
       setUploadError(err.message);
@@ -122,7 +122,13 @@ export default function App() {
             <Toolbar
               jobId={jobId}
               onRegeneratePreview={() => {
-                /* TODO: trigger regeneration */
+                // Changing the preview URL key by appending a timestamp forces the browser to fetch the new video
+                const timestamp = new Date().getTime();
+                const videoEl = document.querySelector("#preview-player video");
+                if (videoEl) {
+                  videoEl.src = getPreviewUrl(jobId, position, fontSize) + `&t=${timestamp}`;
+                  videoEl.load();
+                }
               }}
               onSaveLocal={handleSaveLocal}
               isComplete={isComplete}

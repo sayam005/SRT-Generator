@@ -5,7 +5,7 @@ routes_transcribe.py — Upload video and poll job status.
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
 from config import settings
 from models.schemas import VideoJob, JobResponse
@@ -16,7 +16,10 @@ router = APIRouter(prefix="/api", tags=["transcribe"])
 
 
 @router.post("/jobs", response_model=JobResponse)
-async def create_job(file: UploadFile = File(...)):
+async def create_job(
+    file: UploadFile = File(...),
+    language: str = Form(default="hi", description="'hi' for Hinglish, 'en' for English"),
+):
     """Upload a video file and start a transcription job.
 
     Saves the file to the temp directory, creates a job record,
@@ -41,7 +44,9 @@ async def create_job(file: UploadFile = File(...)):
     video_path.write_bytes(content)
 
     # Create job record
-    job = VideoJob(job_id=job_id, video_path=str(video_path))
+    if language not in ("hi", "en"):
+        language = "hi"
+    job = VideoJob(job_id=job_id, video_path=str(video_path), language=language)
     save_job(job)
 
     # Start pipeline in background
@@ -78,6 +83,7 @@ def _job_to_response(job: VideoJob) -> JobResponse:
         preview_url=preview_url,
         subtitle_position=job.subtitle_position,
         font_size=job.font_size,
+        language=job.language,
         created_at=job.created_at,
         updated_at=job.updated_at,
     )
