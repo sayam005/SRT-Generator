@@ -11,10 +11,10 @@ from groq import AsyncGroq
 from config import settings
 from models.schemas import Segment
 
-try:
-    groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY)
-except Exception:
-    pass
+def get_groq_client():
+    if not settings.GROQ_API_KEY:
+        raise ValueError("GROQ_API_KEY is not set")
+    return AsyncGroq(api_key=settings.GROQ_API_KEY)
 
 MERGE_PROMPT = """You are merging two adjacent transcript chunks (A and B) with a 30-second overlap.
 Chunk A and Chunk B have overlapping content at the boundary. Your task is to produce a single continuous segment list.
@@ -59,8 +59,10 @@ async def _merge_pair(
         "chunk_b_head": [s.model_dump() for s in b_boundary]
     }
     
-    response = await groq_client.chat.completions.create(
-        model="llama3-70b-8192",
+    client = get_groq_client()
+    
+    response = await client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": MERGE_PROMPT},
             {"role": "user", "content": json.dumps(input_json)}

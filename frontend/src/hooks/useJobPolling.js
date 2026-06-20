@@ -20,7 +20,7 @@ export function useJobPolling(jobId, intervalMs = 2000) {
 
     const stopPolling = useCallback(() => {
         if (intervalRef.current) {
-            clearInterval(intervalRef.current);
+            clearTimeout(intervalRef.current);
             intervalRef.current = null;
         }
         setIsPolling(false);
@@ -32,30 +32,39 @@ export function useJobPolling(jobId, intervalMs = 2000) {
             return;
         }
 
+        let isCancelled = false;
+
         const poll = async () => {
+            if (isCancelled) return;
             try {
                 const data = await getJobStatus(jobId);
+                if (isCancelled) return;
+
                 setJob(data);
                 setError(null);
 
                 // Stop polling on terminal states
                 if (data.status === "complete" || data.status === "failed") {
-                    stopPolling();
+                    setIsPolling(false);
+                    return; // Stop recursive polling
                 }
+
+                // Continue polling
+                intervalRef.current = setTimeout(poll, intervalMs);
             } catch (err) {
+                if (isCancelled) return;
                 setError(err.message);
-                stopPolling();
+                setIsPolling(false);
             }
         };
 
-        // Initial fetch
         setIsPolling(true);
         poll();
 
-        // Start interval
-        intervalRef.current = setInterval(poll, intervalMs);
-
-        return () => stopPolling();
+        return () => {
+            isCancelled = true;
+            stopPolling();
+        };
     }, [jobId, intervalMs, stopPolling]);
 
     return { job, error, isPolling };

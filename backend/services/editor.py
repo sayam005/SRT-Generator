@@ -44,24 +44,35 @@ def apply_edits(
         if action.action == EditActionType.UPDATE:
             if action.text is not None:
                 current[idx].text = action.text
+            if action.start is not None:
+                current[idx].start = action.start
+            if action.end is not None:
+                current[idx].end = action.end
                 
         elif action.action == EditActionType.SPLIT:
             split_at = action.split_at
-            if split_at and current[idx].start < split_at < current[idx].end:
+            if split_at is not None and current[idx].start <= split_at <= current[idx].end:
                 orig = current[idx]
+                
+                # Split text roughly in half by words
+                words = orig.text.split()
+                mid = max(1, len(words) // 2) if words else 0
+                
+                text_first = " ".join(words[:mid]) if words else ""
+                text_second = " ".join(words[mid:]) if words else ""
                 
                 # Create the first half
                 first = Segment(
                     start=orig.start, 
                     end=split_at, 
-                    text=f"{orig.text} (1/2)"
+                    text=text_first
                 )
                 
                 # Create the second half
                 second = Segment(
                     start=split_at, 
                     end=orig.end, 
-                    text=f"{orig.text} (2/2)"
+                    text=text_second
                 )
                 
                 # Replace original with both

@@ -14,7 +14,6 @@ import { getSrtUrl } from "../api";
  */
 export default function Toolbar({
     jobId,
-    onRegeneratePreview,
     onSaveLocal,
     isComplete = false,
 }) {
@@ -36,15 +35,6 @@ export default function Toolbar({
                 title="Download SRT file"
             >
                 📥 Download SRT
-            </button>
-
-            <button
-                className="btn btn-secondary"
-                onClick={onRegeneratePreview}
-                disabled={!isComplete}
-                title="Regenerate preview with current edits"
-            >
-                🔄 Regenerate Preview
             </button>
 
             <button

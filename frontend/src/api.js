@@ -57,14 +57,12 @@ export async function editSegments(jobId, actions) {
 }
 
 /**
- * Get the preview video URL with position/font params.
+ * Get the original video URL for frontend subtitle overlay.
  * @param {string} jobId
- * @param {string} position - "top" or "bottom"
- * @param {number} fontSize - 16-48
- * @returns {string} URL to the preview video.
+ * @returns {string} URL to the video.
  */
-export function getPreviewUrl(jobId, position = "bottom", fontSize = 24) {
-    return `${BASE_URL}/jobs/${jobId}/preview?position=${position}&font_size=${fontSize}`;
+export function getPreviewUrl(jobId) {
+    return `${BASE_URL}/jobs/${jobId}/preview`;
 }
 
 /**

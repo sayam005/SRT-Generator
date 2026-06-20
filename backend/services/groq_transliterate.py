@@ -29,11 +29,11 @@ OUTPUT FORMAT:
 You must return only a valid JSON object in this exact schema, and nothing else.
 { "segments": [{"start": 0.0, "end": 3.5, "text": "Namaste dosto, aaj hum seekhenge"}] }"""
 
-# Initialize Groq client
-try:
-    groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY)
-except Exception:
-    pass
+# Initialize Groq client lazily
+def get_groq_client():
+    if not settings.GROQ_API_KEY:
+        raise ValueError("GROQ_API_KEY is not set")
+    return AsyncGroq(api_key=settings.GROQ_API_KEY)
 
 async def _process_batch(segments: List[Segment]) -> List[Segment]:
     """Process a single batch of segments via Groq."""
@@ -41,9 +41,10 @@ async def _process_batch(segments: List[Segment]) -> List[Segment]:
         return []
 
     input_json = {"segments": [s.model_dump() for s in segments]}
+    client = get_groq_client()
     
-    response = await groq_client.chat.completions.create(
-        model="llama3-70b-8192",  # Recommended for json/translation tasks
+    response = await client.chat.completions.create(
+        model="llama-3.3-70b-versatile",  # Recommended for json/translation tasks
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Transliterate these segments:\n{json.dumps(input_json)}"}

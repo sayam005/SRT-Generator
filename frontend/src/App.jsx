@@ -4,7 +4,7 @@
  * Orchestrates upload → processing → editing → download flow.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createJob, getPreviewUrl } from "./api";
 import { useJobPolling } from "./hooks/useJobPolling";
 import { useSegmentEdit } from "./hooks/useSegmentEdit";
@@ -16,6 +16,19 @@ import PositionControls from "./components/PositionControls";
 import Toolbar from "./components/Toolbar";
 
 import "./App.css";
+
+// Phase icons and labels for the rich progress display
+const PHASE_MAP = {
+  extracting: { icon: "🎵", label: "Extracting audio from video", phase: 1 },
+  chunking: { icon: "✂️", label: "Splitting audio into chunks", phase: 2 },
+  transcribing: { icon: "🗣️", label: "Transcribing with Deepgram AI", phase: 3 },
+  transliterating: { icon: "🔤", label: "Transliterating to Hinglish (Groq)", phase: 4 },
+  merging: { icon: "🔗", label: "Merging overlapping segments", phase: 5 },
+  generating_srt: { icon: "📝", label: "Generating SRT subtitle file", phase: 6 },
+  generating_preview: { icon: "🎬", label: "Burning subtitles into preview", phase: 7 },
+};
+
+const TOTAL_PHASES = 7;
 
 export default function App() {
   // --- Job state ---
@@ -40,11 +53,13 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(0);
 
   // Sync segments from server when job updates
-  const prevSegmentsRef = useState(null);
-  if (job?.segments && job.segments !== prevSegmentsRef[0]) {
-    prevSegmentsRef[0] = job.segments;
-    syncSegments(job.segments);
-  }
+  const [prevSegments, setPrevSegments] = useState(null);
+  useEffect(() => {
+    if (job?.segments && job.segments !== prevSegments) {
+      setPrevSegments(job.segments);
+      syncSegments(job.segments);
+    }
+  }, [job?.segments]);
 
   // --- Handlers ---
   const handleUpload = useCallback(async (file, language) => {
@@ -55,6 +70,12 @@ export default function App() {
     } catch (err) {
       setUploadError(err.message);
     }
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setJobId(null);
+    setUploadError(null);
+    setPrevSegments(null);
   }, []);
 
   const handleSaveLocal = useCallback(() => {
@@ -68,8 +89,11 @@ export default function App() {
 
   const isComplete = job?.status === "complete";
   const isFailed = job?.status === "failed";
-  const isProcessing = job && !isComplete && !isFailed;
-  const previewUrl = isComplete ? getPreviewUrl(jobId, position, fontSize) : null;
+  const isProcessing = jobId && !isComplete && !isFailed;
+  const previewUrl = isComplete ? getPreviewUrl(jobId) : null;
+
+  // Get current phase info
+  const currentPhase = job?.status ? PHASE_MAP[job.status] : null;
 
   return (
     <div className="app">
@@ -90,25 +114,74 @@ export default function App() {
           <div className="error-banner">❌ {uploadError}</div>
         )}
 
-        {/* Processing status */}
+        {/* Rich Processing Status */}
         {isProcessing && (
-          <div className="processing-status">
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${job.progress_percent}%` }}
-              />
+          <div className="processing-card">
+            {/* Animated header */}
+            <div className="processing-header">
+              <div className="processing-spinner"></div>
+              <h2>Processing your video...</h2>
             </div>
-            <p className="status-text">
-              {job.current_stage} ({job.progress_percent}%)
-            </p>
+
+            {/* Progress bar */}
+            <div className="progress-container">
+              <div className="progress-bar">
+                <div
+                  className="progress-fill"
+                  style={{ width: `${job?.progress_percent || 0}%` }}
+                />
+              </div>
+              <span className="progress-percent">{job?.progress_percent || 0}%</span>
+            </div>
+
+            {/* Phase timeline */}
+            <div className="phase-timeline">
+              {Object.entries(PHASE_MAP).map(([key, phase]) => {
+                const currentPhaseNum = currentPhase?.phase || 0;
+                const isDone = phase.phase < currentPhaseNum;
+                const isActive = phase.phase === currentPhaseNum;
+                const isPending = phase.phase > currentPhaseNum;
+
+                return (
+                  <div
+                    key={key}
+                    className={`phase-step ${isDone ? "done" : ""} ${isActive ? "active" : ""} ${isPending ? "pending" : ""}`}
+                  >
+                    <div className="phase-icon">
+                      {isDone ? "✅" : phase.icon}
+                    </div>
+                    <div className="phase-info">
+                      <span className="phase-label">{phase.label}</span>
+                      {isActive && (
+                        <span className="phase-active-indicator">
+                          <span className="dot-pulse"></span>
+                          In progress...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Current stage text from backend */}
+            {job?.current_stage && (
+              <div className="current-stage-text">
+                💬 {job.current_stage}
+              </div>
+            )}
           </div>
         )}
 
         {/* Error state */}
         {isFailed && (
-          <div className="error-banner">
-            ❌ Pipeline failed: {job.error}
+          <div className="error-card">
+            <div className="error-icon">❌</div>
+            <h3>Pipeline Failed</h3>
+            <p>{job.error}</p>
+            <button className="btn btn-primary" onClick={handleReset}>
+              Try Again
+            </button>
           </div>
         )}
 
@@ -119,17 +192,12 @@ export default function App() {
         {/* Editor + Preview layout (shown when complete) */}
         {isComplete && (
           <>
+            <div className="success-banner">
+              ✅ Processing complete! {segments.length} segments ready for editing.
+            </div>
+
             <Toolbar
               jobId={jobId}
-              onRegeneratePreview={() => {
-                // Changing the preview URL key by appending a timestamp forces the browser to fetch the new video
-                const timestamp = new Date().getTime();
-                const videoEl = document.querySelector("#preview-player video");
-                if (videoEl) {
-                  videoEl.src = getPreviewUrl(jobId, position, fontSize) + `&t=${timestamp}`;
-                  videoEl.load();
-                }
-              }}
               onSaveLocal={handleSaveLocal}
               isComplete={isComplete}
             />
@@ -150,6 +218,9 @@ export default function App() {
               <div className="preview-panel">
                 <PreviewPlayer
                   previewUrl={previewUrl}
+                  segments={segments}
+                  fontSize={fontSize}
+                  position={position}
                   onTimeUpdate={setCurrentTime}
                 />
                 <PositionControls
@@ -160,6 +231,10 @@ export default function App() {
                 />
               </div>
             </div>
+
+            <button className="btn btn-ghost reset-btn" onClick={handleReset}>
+              ← Upload another video
+            </button>
           </>
         )}
       </main>

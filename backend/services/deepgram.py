@@ -64,19 +64,21 @@ async def transcribe_file(audio_path: str, language: str = "hi") -> List[Segment
     
     # Deepgram returns utterances if requested
     try:
-        utterances = response["results"]["utterances"]
+        # Depending on SDK version, response might be a dict or an object array
+        results = response.get("results", {}) if isinstance(response, dict) else getattr(response, "results", None)
+        utterances = getattr(results, "utterances", None) or results.get("utterances", []) if results else []
         for u in utterances:
-            # Handle edge cases where text might be empty
-            text = u.get("transcript", "").strip()
+            # Handle both dicts and python objects returned by Deepgram
+            transcript = u.get("transcript", "") if isinstance(u, dict) else getattr(u, "transcript", "")
+            start = u.get("start", 0.0) if isinstance(u, dict) else getattr(u, "start", 0.0)
+            end = u.get("end", 0.0) if isinstance(u, dict) else getattr(u, "end", 0.0)
+
+            text = transcript.strip()
             if text:
-                segments.append(
-                    Segment(
-                        start=u["start"],
-                        end=u["end"],
-                        text=text,
-                    )
-                )
-    except KeyError:
+                segments.append(Segment(start=start, end=end, text=text))
+    except Exception as e:
+        print(f"Failed to parse Deepgram utterances: {e}")
+        import traceback; traceback.print_exc()
         # Fallback if utterances fail but we have words
         pass
 

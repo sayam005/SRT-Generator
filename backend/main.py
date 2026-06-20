@@ -4,6 +4,15 @@ main.py — FastAPI application entry point.
 Run with: uvicorn main:app --reload --port 8000
 """
 
+import os
+import sys
+
+ffmpeg_winget_path = r"C:\Users\sayam\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-essentials_build\bin"
+if os.path.exists(ffmpeg_winget_path):
+    if ffmpeg_winget_path not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = ffmpeg_winget_path + os.pathsep + os.environ.get("PATH", "")
+    os.environ["IMAGEIO_FFMPEG_EXE"] = os.path.join(ffmpeg_winget_path, "ffmpeg.exe")
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI

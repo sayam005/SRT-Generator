@@ -56,6 +56,7 @@ export function useSegmentEdit(jobId, initialSegments = []) {
 
     const splitSegment = useCallback(
         (index, splitAt) => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
             sendEdit([{ index, action: "split", split_at: splitAt }]);
         },
         [sendEdit]
@@ -63,6 +64,7 @@ export function useSegmentEdit(jobId, initialSegments = []) {
 
     const mergeSegment = useCallback(
         (index) => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
             sendEdit([{ index, action: "merge" }]);
         },
         [sendEdit]
@@ -70,6 +72,7 @@ export function useSegmentEdit(jobId, initialSegments = []) {
 
     const deleteSegment = useCallback(
         (index) => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
             sendEdit([{ index, action: "delete" }]);
         },
         [sendEdit]
