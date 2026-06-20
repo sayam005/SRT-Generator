@@ -62,7 +62,7 @@ async def _merge_pair(
     client = get_groq_client()
     
     response = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant", #TODO change this to 70b verstile variant 
         messages=[
             {"role": "system", "content": MERGE_PROMPT},
             {"role": "user", "content": json.dumps(input_json)}

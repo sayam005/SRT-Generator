@@ -12,7 +12,7 @@ from pathlib import Path
 from config import settings
 from models.schemas import VideoJob
 from models.enums import JobStatus
-from services import audio, deepgram, groq_transliterate, groq_merge, srt
+from services import audio, deepgram, groq_transliterate, groq_merge, srt, editor
 
 from rich.console import Console
 console = Console()
@@ -125,6 +125,16 @@ async def process_job(job_id: str, video_path: str) -> None:
         save_job(job)
         console.log(f"[green]Phase 5 Done![/green] Resulted in {len(final_segments)} final segments.")
 
+        # Phase 5.5: Cleanup segmentation
+        console.log("[yellow]Phase 5.5:[/yellow] Cleaning up segments...")
+        job.current_stage = "Cleaning up segments..."
+        job.progress_percent = 70
+        save_job(job)
+        cleaned_segments = editor.cleanup_segments(final_segments)
+        job.segments = cleaned_segments
+        save_job(job)
+        console.log(f"[green]Phase 5.5 Done![/green] Cleaned to {len(cleaned_segments)} segments.")
+
         # Phase 6: Generate SRT
         console.log("[yellow]Phase 6:[/yellow] Generating SRT...")
         job.status = JobStatus.GENERATING_SRT
@@ -132,7 +142,7 @@ async def process_job(job_id: str, video_path: str) -> None:
         job.progress_percent = 80
         save_job(job)
         
-        srt_bytes = srt.generate_srt(final_segments)
+        srt_bytes = srt.generate_srt(cleaned_segments)
         srt_path = Path(settings.temp_path) / job_id / f"{job_id}.srt"
         srt_path.write_bytes(srt_bytes)
         

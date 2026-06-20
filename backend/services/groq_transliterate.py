@@ -25,8 +25,17 @@ RULES:
 3. Maintain the natural code-mixed flow.
 4. Fix punctuation and spelling.
 
+SEGMENTATION RULES:
+5. Each segment should be a complete thought (not cut mid-word or mid-phrase).
+6. Merge very short adjacent fragments (1-2 words) into one coherent segment.
+7. If a segment exceeds ~12 words, split at the most natural break point
+   (commas, conjunctions like "aur"/"and"/"but", or after a complete clause).
+8. Each segment should fit one line on screen (~60-70 characters).
+9. Preserve exact start/end timestamps from the original segments.
+
 OUTPUT FORMAT:
 You must return only a valid JSON object in this exact schema, and nothing else.
+The input may contain more segments than the output — you may merge short ones.
 { "segments": [{"start": 0.0, "end": 3.5, "text": "Namaste dosto, aaj hum seekhenge"}] }"""
 
 # Initialize Groq client lazily
@@ -44,7 +53,7 @@ async def _process_batch(segments: List[Segment]) -> List[Segment]:
     client = get_groq_client()
     
     response = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",  # Recommended for json/translation tasks
+        model="llama-3.1-8b-instant",  #TODO change this to 70b verstile variant  # Recommended for json/translation tasks
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Transliterate these segments:\n{json.dumps(input_json)}"}

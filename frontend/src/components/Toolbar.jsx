@@ -1,5 +1,5 @@
 /**
- * Toolbar.jsx — Action bar for SRT download, preview regeneration, and local save.
+ * Toolbar.jsx — Action bar for SRT download and local save.
  */
 
 import { getSrtUrl } from "../api";
@@ -7,7 +7,6 @@ import { getSrtUrl } from "../api";
 /**
  * @param {{
  *   jobId: string|null,
- *   onRegeneratePreview: () => void,
  *   onSaveLocal: () => void,
  *   isComplete: boolean
  * }} props

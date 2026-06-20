@@ -10,7 +10,7 @@ import { editSegments } from "../api";
  *
  * @param {string|null} jobId - Current job ID.
  * @param {Array} initialSegments - Segments from the server.
- * @returns {{ segments, updateSegment, splitSegment, mergeSegment, deleteSegment, isSaving }}
+ * @returns {{ segments, syncSegments, updateSegment, splitSegment, mergeSegment, deleteSegment, isSaving }}
  */
 export function useSegmentEdit(jobId, initialSegments = []) {
     const [segments, setSegments] = useState(initialSegments);

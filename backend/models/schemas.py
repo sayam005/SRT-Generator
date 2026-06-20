@@ -81,7 +81,7 @@ class EditAction(BaseModel):
 class EditRequest(BaseModel):
     """Batch of edit actions sent from the frontend."""
 
-    actions: List[EditAction]
+    actions: List[EditAction] = []
 
 
 class JobResponse(BaseModel):

@@ -19,7 +19,6 @@ async def edit_segments(job_id: str, edit_request: EditRequest):
     """Apply edit actions to a job's segments and regenerate SRT.
 
     Accepts a batch of update/split/merge/delete actions.
-    After applying edits, the preview may need to be regenerated separately.
     """
     job = jobs.get(job_id)
     if not job:
@@ -28,14 +27,15 @@ async def edit_segments(job_id: str, edit_request: EditRequest):
     if not job.segments:
         raise HTTPException(400, "No segments to edit yet")
 
-    # Apply edits via editor service
-    job.segments = apply_edits(job.segments, edit_request.actions)
-    
+    # Apply text/timing edits
+    if edit_request.actions:
+        job.segments = apply_edits(job.segments, edit_request.actions)
+
     # Regenerate SRT
     srt_bytes = generate_srt(job.segments)
     if job.srt_path:
         Path(job.srt_path).write_bytes(srt_bytes)
-    
+
     save_job(job)
 
     return _job_to_response(job)
