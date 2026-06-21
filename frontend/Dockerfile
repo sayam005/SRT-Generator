@@ -1,7 +1,7 @@
 # ——— Dependencies ———
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
 # ——— Build ———
@@ -12,7 +12,7 @@ ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY frontend/ .
 RUN npm run build
 
 # ——— Serve ———

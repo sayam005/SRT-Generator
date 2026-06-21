@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ——— Install Python deps (cached layer) ———
 FROM base AS deps
 WORKDIR /app
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ——— Runtime ———
@@ -18,10 +18,11 @@ WORKDIR /app
 COPY --from=deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=deps /usr/local/bin /usr/local/bin
 
-COPY . .
+COPY backend/ .
 
-RUN mkdir -p temp jobs \
-    && addgroup --system --gid 1001 appgroup \
+RUN mkdir -p temp jobs
+
+RUN addgroup --system --gid 1001 appgroup \
     && adduser --system --uid 1001 --ingroup appgroup appuser \
     && chown -R appuser:appgroup /app
 
