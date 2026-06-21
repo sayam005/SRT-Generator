@@ -4,27 +4,9 @@ config.py — Application settings loaded from .env file.
 Uses pydantic-settings for type-safe environment variable parsing.
 """
 
-import json
 from pathlib import Path
-from typing import Annotated, List
 
-from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-def _parse_cors(v):
-    if isinstance(v, list):
-        return v
-    v = str(v).strip()
-    if not v:
-        return ["*"]
-    try:
-        parsed = json.loads(v)
-        if isinstance(parsed, list):
-            return parsed
-        return [str(parsed)]
-    except (json.JSONDecodeError, ValueError):
-        return [item.strip() for item in v.split(",") if item.strip()]
 
 
 class Settings(BaseSettings):
@@ -48,8 +30,8 @@ class Settings(BaseSettings):
     TEMP_DIR: str = "./temp"
     JOBS_DIR: str = "./jobs"
 
-    # --- CORS ---
-    CORS_ORIGINS: Annotated[List[str], BeforeValidator(_parse_cors)] = ["*"]
+    # --- CORS (raw string — parsed in main.py) ---
+    CORS_ORIGINS: str = "*"
 
     # --- Derived helpers ---
 

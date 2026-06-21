@@ -4,6 +4,7 @@ main.py — FastAPI application entry point.
 Run with: uvicorn main:app --reload --port 8000
 """
 
+import json
 import os
 import sys
 
@@ -45,10 +46,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow React dev server
+# CORS — parse raw string into list
+cors_raw = settings.CORS_ORIGINS.strip()
+if cors_raw.startswith("["):
+    cors_origins = json.loads(cors_raw)
+elif cors_raw:
+    cors_origins = [o.strip() for o in cors_raw.split(",")]
+else:
+    cors_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
