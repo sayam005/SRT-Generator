@@ -20,11 +20,13 @@ from config import settings
 from models.schemas import Segment
 from services.srt import generate_srt
 
-# Resolve font path — use full .ttf path on Windows for Pillow compatibility
+# Resolve font path — use full .ttf path for Pillow compatibility
 if sys.platform == "win32":
     _FONT = "C:/Windows/Fonts/arial.ttf"
+elif sys.platform == "darwin":
+    _FONT = "/System/Library/Fonts/Helvetica.ttc"
 else:
-    _FONT = "Arial"
+    _FONT = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
 
 
 async def generate_preview(

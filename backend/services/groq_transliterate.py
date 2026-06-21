@@ -53,7 +53,7 @@ async def _process_batch(segments: List[Segment]) -> List[Segment]:
     client = get_groq_client()
     
     response = await client.chat.completions.create(
-        model="llama-3.1-8b-instant",  #TODO change this to 70b verstile variant  # Recommended for json/translation tasks
+        model="llama-3.3-70b-versatile",  #TODO change this to 70b verstile variant  # Recommended for json/translation tasks
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Transliterate these segments:\n{json.dumps(input_json)}"}

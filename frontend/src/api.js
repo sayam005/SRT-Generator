@@ -4,7 +4,7 @@
  * All API calls funnel through this module for consistency.
  */
 
-const BASE_URL = "http://localhost:8000/api";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 /**
  * Upload a video file and create a transcription job.

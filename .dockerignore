@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+*/node_modules
+
+# Python
+backend/venv
+__pycache__
+*.pyc
+
+# Temp and job data
+backend/temp
+backend/jobs
+
+# Environment (secrets)
+.env
+
+# Git
+.git
+.gitignore
+
+# Frontend build output (rebuilt in Docker)
+frontend/dist
+
+# Dev files
+*.md
+.vscode
+.idea
